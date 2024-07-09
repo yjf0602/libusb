@@ -1517,3 +1517,90 @@ void API_EXPORTED libusb_free_interface_association_descriptors(
 		free((void*)iad_array->iad);
 	free(iad_array);
 }
+
+/** \ingroup libusb_desc
+ * Retrieve a device string without needing to open the device.
+ *
+ * \param dev the target device
+ * \param string_type the string type to retrieve
+ * \param data the data buffer for the UTF-8 encoded string.
+ * \param length the size of the data buffer in bytes.  
+ *      USB string descriptors cannot be longer than 
+ *      LIBUSB_DEVICE_STRING_UTF8_BYTES_MAX.
+ * \returns an error code or
+ *      the actual string length in bytes including the null terminator.
+ * \see libusb_get_string_descriptor()
+ * \see libusb_get_string_descriptor_ascii()
+ * 
+ * This function works when the device is still closed since it relies
+ * on the operating system to provide the string.  The operating system
+ * normally reads and caches the common string descriptors during
+ * USB enumeration.
+ *
+ * Since the USB string descriptor could be processed by the OS,
+ * this function returns a UTF-8 encoded string.  The string will
+ * be returned untranslated or in the default OS language
+ * when supported by the OS and USB device.
+ * 
+ * One way to call this function is using a buffer on the stack:
+ * 
+ *     char buffer[LIBUSB_DEVICE_STRING_UTF8_BYTES_MAX];
+ *     int ret = libusb_get_device_string(dev, LIBUSB_DEVICE_STRING_SERIAL_NUMBER, buffer, sizeof(buffer));
+ *     if (ret < 0) {
+ *         // handle error
+ *     }
+ * 
+ * This function is commonly used to get the serial number to allow
+ * for device selection before opening the selected device.
+ */
+int API_EXPORTED libusb_get_device_string(libusb_device* dev,
+	enum libusb_device_string_type string_type, char* data, int length) {
+	char * s;
+	if ((string_type < 0) || (string_type >= LIBUSB_DEVICE_STRING_COUNT)) {
+		return LIBUSB_ERROR_INVALID_PARAM;
+	}
+	if ((NULL != data) && length) {
+		*data = 0;  // return an empty string on errors when possible
+	}
+
+	if (NULL == dev->device_strings_utf8[string_type]) {
+		if (usbi_backend.get_device_string) {
+			s = malloc(LIBUSB_DEVICE_STRING_UTF8_BYTES_MAX);
+			int rv = usbi_backend.get_device_string(dev, string_type, s, LIBUSB_DEVICE_STRING_UTF8_BYTES_MAX);
+			if (rv < 0) {
+				free(s);
+				return rv;
+			} else {
+				dev->device_strings_utf8[string_type] = s;
+			}
+		} else {
+			return LIBUSB_ERROR_NOT_SUPPORTED;
+		}
+	}
+
+	s = dev->device_strings_utf8[string_type];
+	if (NULL == s) {
+		return LIBUSB_ERROR_NOT_SUPPORTED;
+	}
+	
+	// copy UTF-8 string and compute length
+	int k = 0;
+	for (k = 0; s[k]; ++k) {
+		if ((NULL != data) && (k < length)) {
+			data[k] = s[k];
+		}
+	}
+	if ((NULL == data) || (0 == length)) {
+		// do nothing
+	} else if (k >= length) {
+		// truncate respecting UTF-8 character boundaries
+		int idx = length - 1;
+		while (idx && (0x80 == (data[idx] & 0xC0))) {  // utf-8 continuation byte
+			--idx;
+		}
+		data[idx] = 0;
+	} else {
+		data[k] = 0;
+	}
+	return k;
+}
