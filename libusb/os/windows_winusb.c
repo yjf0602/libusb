@@ -2028,30 +2028,54 @@ struct string_descriptor_req_s {
 	struct string_descriptor_s desc;
 };
 
-static int usbi_utf16le_to_utf8(uint8_t const* src, int src_length, char* dst, int dst_length) {
-	int count = 0;
+/*
+ * \brief Convert a UTF-16 little endian string to a UTF-8 string.
+ *
+ * \param src The input UTF-16 little endian string.
+ * \param src_length The length of src in bytes.
+ * \param dst The output UTF-8 string.
+ * \param dst_length The length of dst in bytes.
+ * \return The total number of bytes in the UTF-8 string, including
+ *      the null terminator.
+ *      If this is greater than dst_length, then dst is truncated.
+ * \note From MiniBitty RTOS & framework, currently closed source.
+ */
+static int usbi_utf16le_to_utf8(uint8_t const* src, size_t src_length, char* dst, size_t dst_length) {
+	size_t count = 0;
 	uint16_t codepoint;
-	int overflow = 0;
+	bool overflow = false;
 
-	for (int k = 0; k < src_length; k += 2) {
+	if (NULL == dst) {
+		dst_length = 0;
+	}
+	if (dst_length) {
+		dst[0] = 0;  // empty string by default
+	}
+	if (src == NULL) {
+		return 0;
+	}
+
+	for (size_t k = 0; k < src_length; k += 2) {
 		codepoint = *src++;
 		codepoint |= ((uint16_t)*src++) << 8;
 		if (codepoint <= 0x7f) {
 			if (count < dst_length) {
 				dst[count] = (char)codepoint;
-			}
-			else {
-				++overflow;
+			} else {
+				overflow = true;
 			}
 			count += 1;
+			if (0 == codepoint) {
+				--count;  // add null-terminator below
+				break;
+			}
 		}
 		else if (codepoint < 0x7ff) {
 			if ((count + 1) < dst_length) {
 				dst[count] = (char)(0xC0 | (codepoint >> 6));
 				dst[count + 1] = (char)(0x80 | (codepoint & 0x3F));
-			}
-			else {
-				++overflow;
+			} else {
+				overflow = true;
 			}
 			count += 2;
 		}
@@ -2060,20 +2084,17 @@ static int usbi_utf16le_to_utf8(uint8_t const* src, int src_length, char* dst, i
 				dst[count] = (char)(0xE0 | (codepoint >> 12));
 				dst[count + 1] = (char)(0x80 | ((codepoint >> 6) & 0x3F));
 				dst[count + 2] = (char)(0x80 | (codepoint & 0x3F));
-			}
-			else {
-				++overflow;
+			} else {
+				overflow = true;
 			}
 			count += 3;
 		}
 	}
 
 	if (count < dst_length) {
-		dst[count++] = 0;
+		dst[count] = 0;
 	}
-	else {
-		++overflow;
-	}
+	++count;  // include null terminator
 
 	if (overflow && dst_length) {
 		// truncate respecting UTF-8 character boundaries
@@ -2084,7 +2105,7 @@ static int usbi_utf16le_to_utf8(uint8_t const* src, int src_length, char* dst, i
 		dst[idx] = 0;
 	}
 
-	return count;
+	return (int) count;
 }
 
 /*

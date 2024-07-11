@@ -1661,12 +1661,14 @@ enum libusb_device_string_type {
  * The maximum length for a device string descriptor in UTF-8.
  * 
  * 255 max descriptor length with 2 byte header 
- *  => 253 bytes UTF-16LE
- *  => 126 codepoints, but last codepoint is 0
- *  => 125 * 3 + 2
- *  => 376 bytes
+ *  => 253 bytes UTF-16LE, no null termination (USB 2.0 9.6.7)
+ *  => 126.5 codepoints
+ *  => 126 * 3 + 1
+ *  => 382 bytes
+ * 
+ * Stay with 256 * 2/3 = 384 to be safe.
  */
-#define LIBUSB_DEVICE_STRING_UTF8_BYTES_MAX  (384U)
+#define LIBUSB_DEVICE_STRING_BYTES_MAX  (384U)
  
 /** \ingroup libusb_lib
  * Callback function for handling log messages.

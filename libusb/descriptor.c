@@ -1518,6 +1518,50 @@ void API_EXPORTED libusb_free_interface_association_descriptors(
 	free(iad_array);
 }
 
+/*
+ * \brief Copy a UTF-8 string with proper truncation if needed.
+ *
+ * \param tgt The target utf-8 string
+ * \param src The source utf-8 string.
+ * \param tgt_size The size of target in bytes.
+ * \return the length of src in bytes, including the null terminator.
+ *
+ * utf8_copy(NULL, src, 0) is equivalent to strlen(src) + 1.
+ */
+int usbi_utf8_copy(char* tgt, char const* src, size_t tgt_size) {
+	uint8_t* t = (uint8_t*)tgt;
+	uint8_t const* s = (uint8_t const*)src;
+
+	if ((NULL == tgt) || (tgt_size == 0)) {
+		return (int)(strlen(src) + 1);
+	}
+
+	// copy UTF-8 string and compute length
+	int k = 0;
+	for (k = 0; s[k]; ++k) {
+		if (k < tgt_size) {
+			t[k] = s[k];
+		}
+		else {
+			break;
+		}
+	}
+
+	if (k >= tgt_size) {
+		// truncate respecting UTF-8 character boundaries
+		int idx = (int)(tgt_size - 1);
+		while (idx && (0x80 == (t[idx] & 0xC0))) {  // utf-8 continuation byte
+			--idx;
+		}
+		t[idx] = 0;
+		return (int)(strlen(src) + 1);
+	}
+	else {
+		t[k++] = 0;
+		return k;
+	}
+}
+
 /** \ingroup libusb_desc
  * Retrieve a device string without needing to open the device.
  *
@@ -1526,7 +1570,7 @@ void API_EXPORTED libusb_free_interface_association_descriptors(
  * \param data the data buffer for the UTF-8 encoded string.
  * \param length the size of the data buffer in bytes.  
  *      USB string descriptors cannot be longer than 
- *      LIBUSB_DEVICE_STRING_UTF8_BYTES_MAX.
+ *      LIBUSB_DEVICE_STRING_BYTES_MAX.
  * \returns an error code or
  *      the actual string length in bytes including the null terminator.
  * \see libusb_get_string_descriptor()
@@ -1544,7 +1588,7 @@ void API_EXPORTED libusb_free_interface_association_descriptors(
  * 
  * One way to call this function is using a buffer on the stack:
  * 
- *     char buffer[LIBUSB_DEVICE_STRING_UTF8_BYTES_MAX];
+ *     char buffer[LIBUSB_DEVICE_STRING_BYTES_MAX];
  *     int ret = libusb_get_device_string(dev, LIBUSB_DEVICE_STRING_SERIAL_NUMBER, buffer, sizeof(buffer));
  *     if (ret < 0) {
  *         // handle error
@@ -1565,8 +1609,8 @@ int API_EXPORTED libusb_get_device_string(libusb_device* dev,
 
 	if (NULL == dev->device_strings_utf8[string_type]) {
 		if (usbi_backend.get_device_string) {
-			s = malloc(LIBUSB_DEVICE_STRING_UTF8_BYTES_MAX);
-			int rv = usbi_backend.get_device_string(dev, string_type, s, LIBUSB_DEVICE_STRING_UTF8_BYTES_MAX);
+			s = malloc(LIBUSB_DEVICE_STRING_BYTES_MAX);
+			int rv = usbi_backend.get_device_string(dev, string_type, s, LIBUSB_DEVICE_STRING_BYTES_MAX);
 			if (rv < 0) {
 				free(s);
 				return rv;
@@ -1582,25 +1626,6 @@ int API_EXPORTED libusb_get_device_string(libusb_device* dev,
 	if (NULL == s) {
 		return LIBUSB_ERROR_NOT_SUPPORTED;
 	}
-	
-	// copy UTF-8 string and compute length
-	int k = 0;
-	for (k = 0; s[k]; ++k) {
-		if ((NULL != data) && (k < length)) {
-			data[k] = s[k];
-		}
-	}
-	if ((NULL == data) || (0 == length)) {
-		// do nothing
-	} else if (k >= length) {
-		// truncate respecting UTF-8 character boundaries
-		int idx = length - 1;
-		while (idx && (0x80 == (data[idx] & 0xC0))) {  // utf-8 continuation byte
-			--idx;
-		}
-		data[idx] = 0;
-	} else {
-		data[k] = 0;
-	}
-	return k;
+
+	return usbi_utf8_copy(data, s, length);
 }
