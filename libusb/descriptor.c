@@ -1528,7 +1528,7 @@ void API_EXPORTED libusb_free_interface_association_descriptors(
  *
  * utf8_copy(NULL, src, 0) is equivalent to strlen(src) + 1.
  */
-int usbi_utf8_copy(char* tgt, char const* src, size_t tgt_size) {
+static int usbi_utf8_copy(char* tgt, char const* src, size_t tgt_size) {
 	uint8_t* t = (uint8_t*)tgt;
 	uint8_t const* s = (uint8_t const*)src;
 
@@ -1537,12 +1537,11 @@ int usbi_utf8_copy(char* tgt, char const* src, size_t tgt_size) {
 	}
 
 	// copy UTF-8 string and compute length
-	int k = 0;
+	size_t k = 0;
 	for (k = 0; s[k]; ++k) {
 		if (k < tgt_size) {
 			t[k] = s[k];
-		}
-		else {
+		} else {
 			break;
 		}
 	}
@@ -1555,10 +1554,9 @@ int usbi_utf8_copy(char* tgt, char const* src, size_t tgt_size) {
 		}
 		t[idx] = 0;
 		return (int)(strlen(src) + 1);
-	}
-	else {
+	} else {
 		t[k++] = 0;
-		return k;
+		return (int) k;
 	}
 }
 
