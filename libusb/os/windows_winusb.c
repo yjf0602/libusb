@@ -2021,7 +2021,7 @@ struct string_descriptor_s {
 	UCHAR bLength;
 	UCHAR bDescriptorType;
 	uint8_t bString[252];  // UTF-16LE, must be even length
-};
+} LIBUSB_PACKED;
 
 struct string_descriptor_req_s {
 	USB_DESCRIPTOR_REQUEST req;
