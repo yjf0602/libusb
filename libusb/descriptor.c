@@ -1569,7 +1569,7 @@ static int usbi_utf8_copy(char* tgt, char const* src, size_t tgt_size) {
  * \param length the size of the data buffer in bytes.  
  *      USB string descriptors cannot be longer than 
  *      LIBUSB_DEVICE_STRING_BYTES_MAX.
- * \returns an error code or
+ * \returns a negative error code or
  *      the actual string length in bytes including the null terminator.
  * \see libusb_get_string_descriptor()
  * \see libusb_get_string_descriptor_ascii()
@@ -1601,7 +1601,7 @@ int API_EXPORTED libusb_get_device_string(libusb_device* dev,
 	if ((string_type < 0) || (string_type >= LIBUSB_DEVICE_STRING_COUNT)) {
 		return LIBUSB_ERROR_INVALID_PARAM;
 	}
-	if ((NULL != data) && length) {
+	if ((NULL != data) && (length > 0)) {
 		*data = 0;  // return an empty string on errors when possible
 	}
 

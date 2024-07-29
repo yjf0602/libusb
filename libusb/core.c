@@ -1311,9 +1311,7 @@ void API_EXPORTED libusb_unref_device(libusb_device *dev)
 		}
 
 		for (int idx = 0; idx < LIBUSB_DEVICE_STRING_COUNT; ++idx) {
-			if (NULL != dev->device_strings_utf8[idx]) {
-				free(dev->device_strings_utf8[idx]);
-			}
+			free(dev->device_strings_utf8[idx]);
 		}
 
 		free(dev);

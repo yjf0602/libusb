@@ -1031,15 +1031,16 @@ struct usbi_os_backend {
 	 * descriptors.  Use the OS-specific calls to retrieve these strings.
 	 *
 	 * Since the USB string descriptor could be processed by the OS,
-	 * this function returns a UTF-8 encoded string.  The string will
-	 * be returned untranslated or in the default OS language
+	 * this function returns a UTF-8 encoded string.
+	 *
+	 * The string will be returned untranslated or in the default OS language
 	 * when supported by the OS and USB device.
 	 *
 	 * This function must not write more than length bytes into data,
 	 * including the null terminator.
 	 *
 	 * Return:
-	 * - The actual length in bytes excluding the null termintor on success.
+	 * - The actual length in bytes including the null termintor on success.
 	 * - LIBUSB_ERROR_NO_DEVICE if device not found.
 	 * - LIBUSB_ERROR_INVALID_PARAM for invalid string types.
 	 */

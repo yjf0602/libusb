@@ -2137,7 +2137,7 @@ static int winusb_get_device_string(libusb_device* dev,
 	DWORD ret_size;
 	struct string_descriptor_req_s sd;
 
-	if ((NULL != data) && length) {
+	if ((NULL != data) && (length > 0)) {
 		*data = 0;
 	}
 	if (NULL == dev->parent_dev) {
