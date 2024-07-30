@@ -1042,7 +1042,8 @@ struct usbi_os_backend {
 	 * Return:
 	 * - The actual length in bytes including the null termintor on success.
 	 * - LIBUSB_ERROR_NO_DEVICE if device not found.
-	 * - LIBUSB_ERROR_INVALID_PARAM for invalid string types.
+	 * - LIBUSB_ERROR_INVALID_PARAM if any parameter is invalid.
+	 * - another LIBUSB_ERROR code on other failure
 	 */
 	int (*get_device_string)(libusb_device* dev,
 		enum libusb_device_string_type string_type, char* data, int length);

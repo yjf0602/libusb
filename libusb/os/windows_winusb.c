@@ -2040,15 +2040,17 @@ struct string_descriptor_req_s {
  * \brief Convert a UTF-16 little endian string to a UTF-8 string.
  *
  * \param src The input UTF-16 little endian string.
- * \param src_length The length of src in bytes.
+ * \param src_length The length of the src buffer in bytes which
+ *		may or may not include the null terminator.
  * \param dst The output UTF-8 string.
- * \param dst_length The length of dst in bytes.
+ * \param dst_length The length of dst buffer in bytes, which should
+ *		be large enough to fit the string including null terminator.
  * \return The total number of bytes in the UTF-8 string, including
  *      the null terminator.
  *      If this is greater than dst_length, then dst is truncated.
  * \note From MiniBitty RTOS & framework, currently closed source.
  */
-static int usbi_utf16le_to_utf8(uint8_t const* src, size_t src_length, char* dst, size_t dst_length) {
+static int usbi_utf16le_to_utf8(uint8_t const* src, int src_length, char* dst, int dst_length) {
 	size_t count = 0;
 	uint16_t codepoint;
 	bool overflow = false;
@@ -2056,10 +2058,10 @@ static int usbi_utf16le_to_utf8(uint8_t const* src, size_t src_length, char* dst
 	if (NULL == dst) {
 		dst_length = 0;
 	}
-	if (dst_length) {
+	if (dst_length > 0) {
 		dst[0] = 0;  // empty string by default
 	}
-	if (src == NULL) {
+	if ((src == NULL) || (src_length <= 0)) {
 		return 0;
 	}
 
@@ -2157,7 +2159,7 @@ static int winusb_get_device_string(libusb_device* dev,
 	case LIBUSB_DEVICE_STRING_MANUFACTURER: string_descriptor_idx = dev->device_descriptor.iManufacturer; break;
 	case LIBUSB_DEVICE_STRING_PRODUCT: string_descriptor_idx = dev->device_descriptor.iProduct; break;
 	case LIBUSB_DEVICE_STRING_SERIAL_NUMBER: string_descriptor_idx = dev->device_descriptor.iSerialNumber; break;
-	default: return LIBUSB_ERROR_NOT_SUPPORTED;
+	default: return LIBUSB_ERROR_INVALID_PARAM;
 	}
 
 	if (0 == string_descriptor_idx) {
@@ -2194,7 +2196,7 @@ static int winusb_get_device_string(libusb_device* dev,
 		return 0;
 	}
 
-	return usbi_utf16le_to_utf8(sd.desc.bString, sd.desc.bLength - 2, data, length);
+	return usbi_utf16le_to_utf8(sd.desc.bString, (int) (sd.desc.bLength - 2), data, length);
 }
 
 static int winusb_get_config_descriptor(struct libusb_device *dev, uint8_t config_index, void *buffer, size_t len)

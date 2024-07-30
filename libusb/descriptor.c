@@ -1528,16 +1528,16 @@ void API_EXPORTED libusb_free_interface_association_descriptors(
  *
  * utf8_copy(NULL, src, 0) is equivalent to strlen(src) + 1.
  */
-static int usbi_utf8_copy(char* tgt, char const* src, size_t tgt_size) {
+static int usbi_utf8_copy(char* tgt, char const* src, int tgt_size) {
 	uint8_t* t = (uint8_t*)tgt;
 	uint8_t const* s = (uint8_t const*)src;
 
-	if ((NULL == tgt) || (tgt_size == 0)) {
+	if ((NULL == tgt) || (tgt_size <= 0)) {
 		return (int)(strlen(src) + 1);
 	}
 
 	// copy UTF-8 string and compute length
-	size_t k = 0;
+	int k = 0;
 	for (k = 0; s[k]; ++k) {
 		if (k < tgt_size) {
 			t[k] = s[k];
@@ -1548,7 +1548,7 @@ static int usbi_utf8_copy(char* tgt, char const* src, size_t tgt_size) {
 
 	if (k >= tgt_size) {
 		// truncate respecting UTF-8 character boundaries
-		int idx = (int)(tgt_size - 1);
+		int idx = tgt_size - 1;
 		while (idx && (0x80 == (t[idx] & 0xC0))) {  // utf-8 continuation byte
 			--idx;
 		}
@@ -1556,7 +1556,7 @@ static int usbi_utf8_copy(char* tgt, char const* src, size_t tgt_size) {
 		return (int)(strlen(src) + 1);
 	} else {
 		t[k++] = 0;
-		return (int) k;
+		return k;
 	}
 }
 
@@ -1580,8 +1580,9 @@ static int usbi_utf8_copy(char* tgt, char const* src, size_t tgt_size) {
  * USB enumeration.
  *
  * Since the USB string descriptor could be processed by the OS,
- * this function returns a UTF-8 encoded string.  The string will
- * be returned untranslated or in the default OS language
+ * this function returns a UTF-8 encoded string.
+ *
+ * The string will be returned untranslated or in the default OS language
  * when supported by the OS and USB device.
  * 
  * One way to call this function is using a buffer on the stack:
@@ -1598,13 +1599,18 @@ static int usbi_utf8_copy(char* tgt, char const* src, size_t tgt_size) {
 int API_EXPORTED libusb_get_device_string(libusb_device* dev,
 	enum libusb_device_string_type string_type, char* data, int length) {
 	char * s;
+	if (NULL == dev) {
+		return LIBUSB_ERROR_INVALID_PARAM;
+	}
 	if ((string_type < 0) || (string_type >= LIBUSB_DEVICE_STRING_COUNT)) {
 		return LIBUSB_ERROR_INVALID_PARAM;
 	}
 	if (length < 0) {
 		return LIBUSB_ERROR_INVALID_PARAM;
 	}
-	if ((NULL != data) && (length > 0)) {
+	if (NULL == data) {
+		length = 0;
+	} else if (length > 0) {
 		*data = 0;  // return an empty string on errors when possible
 	}
 
