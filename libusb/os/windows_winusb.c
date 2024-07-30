@@ -2017,11 +2017,19 @@ static int winusb_get_device_list(struct libusb_context *ctx, struct discovered_
 	return r;
 }
 
+#ifdef _MSC_VER
+#pragma pack(push, 1)
+#endif
+
 struct string_descriptor_s {
 	UCHAR bLength;
 	UCHAR bDescriptorType;
 	uint8_t bString[252];  // UTF-16LE, must be even length
 } LIBUSB_PACKED;
+
+#ifdef _MSC_VER
+#pragma pack(pop)
+#endif
 
 struct string_descriptor_req_s {
 	USB_DESCRIPTOR_REQUEST req;
