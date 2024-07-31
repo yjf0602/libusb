@@ -2051,7 +2051,7 @@ struct string_descriptor_req_s {
  * \note From MiniBitty RTOS & framework, currently closed source.
  */
 static int usbi_utf16le_to_utf8(uint8_t const* src, int src_length, char* dst, int dst_length) {
-	size_t count = 0;
+	int count = 0;
 	uint16_t codepoint;
 	bool overflow = false;
 
@@ -2065,7 +2065,7 @@ static int usbi_utf16le_to_utf8(uint8_t const* src, int src_length, char* dst, i
 		return 0;
 	}
 
-	for (size_t k = 0; k < src_length; k += 2) {
+	for (int k = 0; k < src_length; k += 2) {
 		codepoint = *src++;
 		codepoint |= ((uint16_t)*src++) << 8;
 		if (codepoint <= 0x7f) {
@@ -2108,14 +2108,14 @@ static int usbi_utf16le_to_utf8(uint8_t const* src, int src_length, char* dst, i
 
 	if (overflow && dst_length) {
 		// truncate respecting UTF-8 character boundaries
-		size_t idx = dst_length - 1;
+		int idx = dst_length - 1;
 		while (idx && (0x80 == (dst[idx] & 0xC0))) {  // utf-8 continuation byte
 			--idx;
 		}
 		dst[idx] = 0;
 	}
 
-	return (int) count;
+	return count;
 }
 
 /*
