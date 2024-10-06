@@ -474,7 +474,7 @@ static int op_get_device_string(struct libusb_device *dev,
 	if (fd < 0)
 		return LIBUSB_ERROR_IO;
 
-	r = read(fd, buffer, length);
+	r = read(fd, buffer, length - 1);  // leave space for null terminator
 	if (r < 0) {
 		r = errno;
 		close(fd);
@@ -484,6 +484,7 @@ static int op_get_device_string(struct libusb_device *dev,
 		return LIBUSB_ERROR_IO;
 	}
 	close(fd);
+	buffer[r] = 0;  // add null terminator
 	while (r && ((buffer[r] == 0) || (buffer[r] == '\n'))) {
 		buffer[r--] = 0;
 	}
