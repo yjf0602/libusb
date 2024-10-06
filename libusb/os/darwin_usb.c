@@ -968,6 +968,7 @@ static int darwin_get_device_string(struct libusb_device *dev,
     case LIBUSB_DEVICE_STRING_SERIAL_NUMBER: 
       cf = IORegistryEntryCreateCFProperty(service, CFSTR(kUSBSerialNumberString), kCFAllocatorDefault, 0);
       break;
+    case LIBUSB_DEVICE_STRING_COUNT: /* intentional fall-through, avoid -Wswitch-enum */
     default:
       IOObjectRelease(service);
       return LIBUSB_ERROR_INVALID_PARAM;
